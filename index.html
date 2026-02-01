@@ -91,6 +91,23 @@
         opacity: 1;
       }
     }
+
+    .debug{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid #e8b7cd;
+      background:#fff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size:12px;
+      line-height:1.35;
+      max-height:180px;
+      overflow:auto;
+      white-space:pre-wrap;
+      word-break:break-word;
+      display:none;
+    }
+    .debug.show{ display:block; }
   </style>
 </head>
 <body>
@@ -101,8 +118,8 @@
     <p>Wähl us:</p>
 
     <div class="arena" id="arena" aria-label="Antwortbereich">
-      <button class="btn" id="yes">Ja unbedingt❤️</button>
-      <button class="btn" id="no">Neee kei Bock</button>
+      <button class="btn" id="yes" type="button">Ja unbedingt❤️</button>
+      <button class="btn" id="no" type="button">Neee kei Bock</button>
     </div>
 
     <div class="hint" id="hint">
@@ -110,12 +127,13 @@
     </div>
 
     <div class="result" id="result" role="status" aria-live="polite"></div>
+    <div class="debug" id="debug"></div>
 
     <form action="https://formspree.io/f/mzdvrkj" method="POST" id="replyForm">
       <input type="hidden" name="answer" id="answerField" value="">
       <input type="hidden" name="dodges" id="dodgesField" value="">
       <input type="hidden" name="page" value="valentinskarte">
-      <button type="submit" style="display:none" id="submitHidden">send</button>
+      <input type="hidden" name="_subject" value="💘 Neue Valentins-Antwort">
     </form>
   </div>
 
@@ -128,17 +146,71 @@
 
     const answerField = document.getElementById("answerField");
     const dodgesField = document.getElementById("dodgesField");
-    const submitHidden = document.getElementById("submitHidden");
+    const form = document.getElementById("replyForm");
 
     const fx = document.getElementById("fx");
+    const debugEl = document.getElementById("debug");
+
+    const DEBUG = true;
+
+    function dbg(msg){
+      if (!DEBUG) return;
+      debugEl.classList.add("show");
+      const ts = new Date().toISOString();
+      debugEl.textContent += `[${ts}] ${msg}\n`;
+      debugEl.scrollTop = debugEl.scrollHeight;
+    }
+
+    dbg(`UA: ${navigator.userAgent}`);
+    dbg(`Page: ${location.href}`);
 
     let alreadySent = false;
-    function sendAnswer(value){
-      if (alreadySent) return;
+
+    async function sendAnswer(value){
+      if (alreadySent) { dbg("sendAnswer: alreadySent=true, skip"); return; }
       alreadySent = true;
+
       answerField.value = value;
       dodgesField.value = String(dodges);
-      submitHidden.click();
+
+      dbg(`sendAnswer: value="${value}", dodges=${dodges}`);
+      dbg(`Form action: ${form.action}`);
+
+      const data = new FormData(form);
+
+      try{
+        dbg("fetch: POST -> formspree (Accept: application/json) ...");
+        const res = await fetch(form.action, {
+          method: "POST",
+          body: data,
+          headers: { "Accept": "application/json" }
+        });
+
+        dbg(`fetch: status=${res.status} ok=${res.ok}`);
+
+        let text = "";
+        try{
+          const ct = res.headers.get("content-type") || "";
+          dbg(`fetch: content-type=${ct}`);
+          if (ct.includes("application/json")) {
+            const j = await res.json();
+            dbg(`fetch: json=${JSON.stringify(j)}`);
+          } else {
+            text = await res.text();
+            dbg(`fetch: text=${text.slice(0, 400)}`);
+          }
+        } catch (e) {
+          dbg(`fetch: parse error: ${String(e)}`);
+        }
+
+        if (!res.ok){
+          alreadySent = false;
+          dbg("fetch: NOT OK -> alreadySent reset to false");
+        }
+      } catch(e){
+        alreadySent = false;
+        dbg(`fetch: ERROR: ${String(e)}`);
+      }
     }
 
     const MAX_DODGES = 34;
