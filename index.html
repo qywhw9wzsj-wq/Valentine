@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title> Wetsch du min Valentinsschatz si? </title>
+  <style>
+    body{
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      display:grid; place-items:center;
+      min-height:100vh; margin:0; padding:20px;
+      background: #fff3f8;
+    }
+    .card{
+      width:min(560px,96vw);
+      background:#fff;
+      border:1px solid #f1c7da;
+      border-radius:18px;
+      padding:22px 18px;
+      box-shadow:0 10px 30px rgba(0,0,0,.06);
+    }
+    h1{margin:0 0 8px; font-size:1.5rem}
+    p{margin:0 0 12px; line-height:1.4}
+    .arena{
+      position:relative;
+      height:220px;
+      border-radius:14px;
+      border:1px dashed #f1c7da;
+      background:#fff;
+      overflow:hidden;
+      margin-top:12px;
+    }
+    .btn{
+      position:absolute;
+      padding:12px 18px;
+      border-radius:999px;
+      border:1px solid #ddd;
+      background:#fff;
+      cursor:pointer;
+      font-size:1rem;
+      user-select:none;
+      touch-action:manipulation;
+      transition: transform .12s ease;
+      white-space:nowrap;
+    }
+    #yes{
+      left:16px; top:62%;
+      border-color:#ff7bb0;
+      background:#ffedf5;
+      transform-origin:left center;
+    }
+    #no{
+      left:170px; top:62%;
+    }
+    .result{
+      margin-top:14px;
+      padding:12px 14px;
+      border-radius:12px;
+      background:#fff3f8;
+      border:1px solid #f1c7da;
+      display:none;
+    }
+    .hint{
+      margin-top:10px;
+      color:#6b6b6b;
+      font-size:.95rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Liebi Selène, wetsch du min Valentinsschatz sii?🤞😘</h1>
+    <p>Wähl us:</p>
+
+    <div class="arena" id="arena" aria-label="Antwortbereich">
+      <button class="btn" id="yes">Ja unbedingt Max!</button>
+      <button class="btn" id="no">Neee kein bock</button>
+    </div>
+
+    <div class="hint" id="hint">
+      Tipp: Klick ah wie du dich entschiede hesch!
+    </div>
+
+    <div class="result" id="result" role="status" aria-live="polite"></div>
+
+    <form action="https://formspree.io/f/mzdvrkj" method="POST" id="replyForm">
+      <input type="hidden" name="answer" id="answerField" value="">
+      <input type="hidden" name="dodges" id="dodgesField" value="">
+      <input type="hidden" name="page" value="valentinskarte">
+      <button type="submit" style="display:none" id="submitHidden">send</button>
+    </form>
+  </div>
+
+  <script>
+    const arena = document.getElementById("arena");
+    const yesBtn = document.getElementById("yes");
+    const noBtn  = document.getElementById("no");
+    const result = document.getElementById("result");
+    const hint   = document.getElementById("hint");
+
+    const answerField = document.getElementById("answerField");
+    const dodgesField = document.getElementById("dodgesField");
+    const submitHidden = document.getElementById("submitHidden");
+
+    let alreadySent = false;
+
+    function sendAnswer(value){
+      if (alreadySent) return;
+      alreadySent = true;
+
+      answerField.value = value;
+      dodgesField.value = String(dodges);
+      submitHidden.click();
+    }
+
+    const MAX_DODGES = 34;
+    let dodges = 0;
+
+    const noTexts = [
+      "Nein 🙃","Sicher? 😅","Wirklich? 🥺","Komm schon 😳",
+      "Doch","Doch","Doch","Doch","Doch","Doch","Doch","Doch",
+      "Doch","Doch","Doch","Doch","Doch","Doch","Doch","Doch",
+      "Doch","Doch","Doch","Doch","Doch","Doch","Doch","Doch",
+      "Doch","Doch","Doch","Doch","Doch","Doch"
+    ];
+
+    function show(msg){
+      result.style.display = "block";
+      result.textContent = msg;
+    }
+
+    yesBtn.addEventListener("click", () => {
+      show("Yess! Ich freui mich uf de 14.!❤️");
+      sendAnswer("JA, sie chas chum erwarte!");
+    });
+
+    noBtn.addEventListener("click", () => {
+      show("Ich weiss dass du trotzdem wotsch😘");
+      sendAnswer("Sie het sage und schreibe 33x nei druckt😅😘");
+    });
+
+    function clamp(v, min, max){
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function moveNoAwayFrom(pointerX, pointerY){
+      if (dodges >= MAX_DODGES) return;
+
+      dodges++;
+      noBtn.textContent = noTexts[Math.min(dodges, noTexts.length - 1)];
+
+      const scale = 1 + dodges * 0.06;
+      yesBtn.style.transform = `translateY(-50%) scale(${scale})`;
+
+      const a = arena.getBoundingClientRect();
+      const b = noBtn.getBoundingClientRect();
+
+      const curLeft = parseFloat(getComputedStyle(noBtn).left) || 0;
+      const curTop  = parseFloat(getComputedStyle(noBtn).top)  || 0;
+
+      const btnCx = a.left + curLeft + b.width / 2;
+      const btnCy = a.top  + curTop  + b.height / 2;
+
+      let dx = btnCx - pointerX;
+      let dy = btnCy - pointerY;
+
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) {
+        dx = 1; dy = 1;
+      }
+
+      const len = Math.hypot(dx, dy) || 1;
+      dx /= len; dy /= len;
+
+      const step = 110;
+
+      const nextLeft = clamp(curLeft + dx * step, 8, a.width  - b.width  - 8);
+      const nextTop  = clamp(curTop  + dy * step, 8, a.height - b.height - 8);
+
+      noBtn.style.left = `${nextLeft}px`;
+      noBtn.style.top  = `${nextTop}px`;
+
+      if (dodges === MAX_DODGES) {
+        hint.textContent = "🙄😘";
+        noBtn.textContent = "Neee 😘";
+      }
+    }
+
+    arena.addEventListener("pointermove", (e) => {
+      if (dodges >= MAX_DODGES) return;
+
+      const b = noBtn.getBoundingClientRect();
