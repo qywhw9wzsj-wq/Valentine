@@ -10,6 +10,7 @@
       display:grid; place-items:center;
       min-height:100vh; margin:0; padding:20px;
       background: #fff3f8;
+      overflow:hidden;
     }
     .card{
       width:min(560px,96vw);
@@ -18,6 +19,8 @@
       border-radius:18px;
       padding:22px 18px;
       box-shadow:0 10px 30px rgba(0,0,0,.06);
+      position:relative;
+      z-index:2;
     }
     h1{margin:0 0 8px; font-size:1.5rem}
     p{margin:0 0 12px; line-height:1.4}
@@ -65,16 +68,41 @@
       color:#6b6b6b;
       font-size:.95rem;
     }
+
+    .fx-layer{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      overflow:hidden;
+      z-index:1;
+    }
+    .piece{
+      position:absolute;
+      top:-24px;
+      will-change: transform;
+      animation: fall linear forwards;
+      opacity:.95;
+      text-shadow: 0 6px 18px rgba(0,0,0,.10);
+      user-select:none;
+    }
+    @keyframes fall{
+      to{
+        transform: translate3d(var(--dx), 110vh, 0) rotate(var(--rot));
+        opacity: 1;
+      }
+    }
   </style>
 </head>
 <body>
+  <div class="fx-layer" id="fx"></div>
+
   <div class="card">
     <h1>Liebi Selène, wetsch du min Valentinsschatz sii?🤞😘</h1>
     <p>Wähl us:</p>
 
     <div class="arena" id="arena" aria-label="Antwortbereich">
-      <button class="btn" id="yes">Ja unbedingt Max!</button>
-      <button class="btn" id="no">Neee kein bock</button>
+      <button class="btn" id="yes">Ja unbedingt❤️</button>
+      <button class="btn" id="no">Neee kei Bock</button>
     </div>
 
     <div class="hint" id="hint">
@@ -102,12 +130,12 @@
     const dodgesField = document.getElementById("dodgesField");
     const submitHidden = document.getElementById("submitHidden");
 
-    let alreadySent = false;
+    const fx = document.getElementById("fx");
 
+    let alreadySent = false;
     function sendAnswer(value){
       if (alreadySent) return;
       alreadySent = true;
-
       answerField.value = value;
       dodgesField.value = String(dodges);
       submitHidden.click();
@@ -129,19 +157,50 @@
       result.textContent = msg;
     }
 
+    function clamp(v, min, max){
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function confettiHearts(){
+      const count = 120;
+      const symbols = ["❤️","💘","😍","💕","💗","❤️","🥰","💐","❤️‍🔥","✨","🎉"];
+      const w = window.innerWidth;
+
+      for (let i = 0; i < count; i++){
+        const el = document.createElement("div");
+        el.className = "piece";
+        el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+
+        const left = Math.random() * w;
+        const dx = (Math.random() * 2 - 1) * 220;
+        const rot = (Math.random() * 2 - 1) * 720;
+        const dur = 2.4 + Math.random() * 1.9;
+        const size = 14 + Math.random() * 22;
+        const delay = Math.random() * 0.25;
+
+        el.style.left = `${left}px`;
+        el.style.fontSize = `${size}px`;
+        el.style.setProperty("--dx", `${dx}px`);
+        el.style.setProperty("--rot", `${rot}deg`);
+        el.style.animationDuration = `${dur}s`;
+        el.style.animationDelay = `${delay}s`;
+
+        fx.appendChild(el);
+
+        setTimeout(() => el.remove(), (dur + delay) * 1000 + 200);
+      }
+    }
+
     yesBtn.addEventListener("click", () => {
       show("Yess! Ich freui mich uf de 14.!❤️");
-      sendAnswer("JA, sie chas chum erwarte!");
+      confettiHearts();
+      sendAnswer("JA, sie chans chum erwarte!");
     });
 
     noBtn.addEventListener("click", () => {
       show("Ich weiss dass du trotzdem wotsch😘");
       sendAnswer("Sie het sage und schreibe 33x nei druckt😅😘");
     });
-
-    function clamp(v, min, max){
-      return Math.max(min, Math.min(max, v));
-    }
 
     function moveNoAwayFrom(pointerX, pointerY){
       if (dodges >= MAX_DODGES) return;
@@ -189,3 +248,31 @@
       if (dodges >= MAX_DODGES) return;
 
       const b = noBtn.getBoundingClientRect();
+      const cx = b.left + b.width / 2;
+      const cy = b.top + b.height / 2;
+
+      const dist = Math.hypot(cx - e.clientX, cy - e.clientY);
+
+      const TRIGGER_RADIUS = 85;
+
+      if (dist < TRIGGER_RADIUS) {
+        moveNoAwayFrom(e.clientX, e.clientY);
+      }
+    });
+
+    noBtn.addEventListener("touchstart", (e) => {
+      if (dodges < MAX_DODGES) e.preventDefault();
+      const t = e.touches[0];
+      moveNoAwayFrom(t.clientX, t.clientY);
+    }, { passive: false });
+
+    noBtn.style.left = "170px";
+    noBtn.style.top = "62%";
+
+    yesBtn.style.top = "62%";
+    yesBtn.style.transform = "translateY(-50%) scale(1)";
+
+    noBtn.style.transform = "translateY(-50%)";
+  </script>
+</body>
+</html>
