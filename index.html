@@ -149,20 +149,6 @@
     const form = document.getElementById("replyForm");
 
     const fx = document.getElementById("fx");
-    const debugEl = document.getElementById("debug");
-
-    const DEBUG = true;
-
-    function dbg(msg){
-      if (!DEBUG) return;
-      debugEl.classList.add("show");
-      const ts = new Date().toISOString();
-      debugEl.textContent += `[${ts}] ${msg}\n`;
-      debugEl.scrollTop = debugEl.scrollHeight;
-    }
-
-    dbg(`UA: ${navigator.userAgent}`);
-    dbg(`Page: ${location.href}`);
 
     let alreadySent = false;
 
